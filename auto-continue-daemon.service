@@ -1,0 +1,14 @@
+[Unit]
+Description=Auto-Continue Daemon (Codex + OpenCode)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/dev/projects/auto-continue-agent/daemon.py --poll-interval 30
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
