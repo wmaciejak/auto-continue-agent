@@ -1,0 +1,20 @@
+.gitignore
+  h_1be3d917dfb493 1-25
+README.md
+  h_1be3d917dfb493 1-159
+auto-continue-daemon.service
+  h_1be3d917dfb493 1-14
+daemon.py
+  h_1be3d917dfb493 1-598
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "bf4e0e4d3ef898581d8229ed3f3f3b10d1544492",
+  "prompts": {},
+  "humans": {
+    "h_1be3d917dfb493": {
+      "author": "Wojciech Maciejak <4128525+wmaciejak@users.noreply.github.com>"
+    }
+  }
+}
