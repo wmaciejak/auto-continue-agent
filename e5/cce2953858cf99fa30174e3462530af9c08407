@@ -1,0 +1,24 @@
+assets/opencode-icon.svg
+  h_1be3d917dfb493 1-10
+assets/codex-icon.svg
+  h_1be3d917dfb493 1-10
+assets/logo.svg
+  h_1be3d917dfb493 1-51
+assets/architecture.svg
+  h_1be3d917dfb493 1-91
+README.md
+  h_1be3d917dfb493 3-5,7-9,11-16,18,20,22,24,26-87,90-94,96-104,107,109,112,114-119,122,125,128-131,134-138,141,145-157,159,161,177,183,188,191-233,235,237-239,241-243,245,247-249,251-253,255,258-259,261,263,265,267,269-289
+LICENSE
+  h_1be3d917dfb493 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "e5cce2953858cf99fa30174e3462530af9c08407",
+  "prompts": {},
+  "humans": {
+    "h_1be3d917dfb493": {
+      "author": "Wojciech Maciejak <4128525+wmaciejak@users.noreply.github.com>"
+    }
+  }
+}
