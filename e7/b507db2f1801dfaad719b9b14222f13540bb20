@@ -1,0 +1,18 @@
+README.md
+  h_1be3d917dfb493 22,35,42,54,84,172-178,190,226-236,249,275-287,306
+assets/claude-icon.svg
+  h_1be3d917dfb493 1-10
+daemon.py
+  h_1be3d917dfb493 5,11,16,51-54,417-605,626-630,692,731-746,777,800-801,804
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "e7b507db2f1801dfaad719b9b14222f13540bb20",
+  "prompts": {},
+  "humans": {
+    "h_1be3d917dfb493": {
+      "author": "Wojciech Maciejak <4128525+wmaciejak@users.noreply.github.com>"
+    }
+  }
+}
