@@ -1,5 +1,5 @@
 [Unit]
-Description=Auto-Continue Daemon (Codex + OpenCode)
+Description=Auto-Continue Daemon (Codex + OpenCode + Claude)
 After=network.target
 
 [Service]
