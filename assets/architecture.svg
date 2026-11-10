@@ -1,0 +1,91 @@
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#667eea" />
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="400" fill="#f8f9fa" rx="10"/>
+  
+  <!-- Title -->
+  <text x="400" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#2d3748" text-anchor="middle">
+    How It Works
+  </text>
+  
+  <!-- Step 1: Monitor -->
+  <g transform="translate(50, 80)">
+    <rect width="160" height="120" rx="10" fill="white" stroke="#667eea" stroke-width="2" filter="url(#shadow)"/>
+    <circle cx="80" cy="40" r="25" fill="url(#flowGrad)"/>
+    <path d="M 70 35 L 70 50 L 90 42.5 Z" fill="white"/>
+    <text x="80" y="85" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2d3748" text-anchor="middle">1. Monitor</text>
+    <text x="80" y="105" font-family="Arial, sans-serif" font-size="11" fill="#718096" text-anchor="middle">Poll databases</text>
+  </g>
+  
+  <!-- Step 2: Detect -->
+  <g transform="translate(240, 80)">
+    <rect width="160" height="120" rx="10" fill="white" stroke="#f5576c" stroke-width="2" filter="url(#shadow)"/>
+    <circle cx="80" cy="40" r="25" fill="#f5576c"/>
+    <text x="80" y="47" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">!</text>
+    <text x="80" y="85" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2d3748" text-anchor="middle">2. Detect</text>
+    <text x="80" y="105" font-family="Arial, sans-serif" font-size="11" fill="#718096" text-anchor="middle">Rate limit error</text>
+  </g>
+  
+  <!-- Step 3: Wait -->
+  <g transform="translate(430, 80)">
+    <rect width="160" height="120" rx="10" fill="white" stroke="#f093fb" stroke-width="2" filter="url(#shadow)"/>
+    <circle cx="80" cy="40" r="25" fill="#f093fb"/>
+    <circle cx="80" cy="40" r="18" fill="none" stroke="white" stroke-width="2"/>
+    <line x1="80" y1="40" x2="80" y2="28" stroke="white" stroke-width="2"/>
+    <line x1="80" y1="40" x2="90" y2="40" stroke="white" stroke-width="2"/>
+    <text x="80" y="85" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2d3748" text-anchor="middle">3. Wait</text>
+    <text x="80" y="105" font-family="Arial, sans-serif" font-size="11" fill="#718096" text-anchor="middle">Until reset time</text>
+  </g>
+  
+  <!-- Step 4: Resume -->
+  <g transform="translate(620, 80)">
+    <rect width="160" height="120" rx="10" fill="white" stroke="#48bb78" stroke-width="2" filter="url(#shadow)"/>
+    <circle cx="80" cy="40" r="25" fill="#48bb78"/>
+    <path d="M 70 35 L 70 50 L 90 42.5 Z" fill="white"/>
+    <text x="80" y="85" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2d3748" text-anchor="middle">4. Resume</text>
+    <text x="80" y="105" font-family="Arial, sans-serif" font-size="11" fill="#718096" text-anchor="middle">Auto continue</text>
+  </g>
+  
+  <!-- Arrows -->
+  <line x1="210" y1="140" x2="240" y2="140" stroke="#667eea" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="140" x2="430" y2="140" stroke="#667eea" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="590" y1="140" x2="620" y2="140" stroke="#667eea" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Data sources -->
+  <g transform="translate(50, 240)">
+    <rect width="160" height="100" rx="8" fill="#2d3748" filter="url(#shadow)"/>
+    <text x="80" y="30" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Codex</text>
+    <text x="80" y="50" font-family="monospace" font-size="10" fill="#a0aec0" text-anchor="middle">thread_history_1.sqlite</text>
+    <text x="80" y="75" font-family="Arial, sans-serif" font-size="11" fill="#48bb78" text-anchor="middle">✓ usageLimitExceeded</text>
+  </g>
+  
+  <g transform="translate(240, 240)">
+    <rect width="160" height="100" rx="8" fill="#2d3748" filter="url(#shadow)"/>
+    <text x="80" y="30" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">OpenCode</text>
+    <text x="80" y="50" font-family="monospace" font-size="10" fill="#a0aec0" text-anchor="middle">opencode.log</text>
+    <text x="80" y="75" font-family="Arial, sans-serif" font-size="11" fill="#48bb78" text-anchor="middle">✓ usage limit exceeded</text>
+  </g>
+  
+  <g transform="translate(430, 240)">
+    <rect width="160" height="100" rx="8" fill="#2d3748" filter="url(#shadow)"/>
+    <text x="80" y="30" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">State</text>
+    <text x="80" y="50" font-family="monospace" font-size="10" fill="#a0aec0" text-anchor="middle">auto-continue-daemon.json</text>
+    <text x="80" y="75" font-family="Arial, sans-serif" font-size="11" fill="#48bb78" text-anchor="middle">✓ Track continued</text>
+  </g>
+  
+  <g transform="translate(620, 240)">
+    <rect width="160" height="100" rx="8" fill="#2d3748" filter="url(#shadow)"/>
+    <text x="80" y="30" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Resume</text>
+    <text x="80" y="50" font-family="monospace" font-size="10" fill="#a0aec0" text-anchor="middle">codex queue / opencode</text>
+    <text x="80" y="75" font-family="Arial, sans-serif" font-size="11" fill="#48bb78" text-anchor="middle">✓ CLI integration</text>
+  </g>
+</svg>

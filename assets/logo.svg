@@ -1,0 +1,51 @@
+<svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="200" fill="url(#grad1)" rx="20"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="700" cy="50" r="80" fill="white" opacity="0.1"/>
+  <circle cx="750" cy="150" r="100" fill="white" opacity="0.08"/>
+  <circle cx="100" cy="180" r="60" fill="white" opacity="0.1"/>
+  
+  <!-- Icon: Play/Continue symbol -->
+  <g filter="url(#shadow)">
+    <circle cx="100" cy="100" r="45" fill="white"/>
+    <path d="M 85 75 L 85 125 L 120 100 Z" fill="url(#grad2)"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="170" y="90" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="white">
+    Auto-Continue
+  </text>
+  <text x="170" y="130" font-family="Arial, sans-serif" font-size="24" fill="white" opacity="0.9">
+    Never let rate limits stop your flow
+  </text>
+  
+  <!-- Badges -->
+  <g transform="translate(170, 150)">
+    <rect width="80" height="24" rx="12" fill="white" opacity="0.2"/>
+    <text x="40" y="16" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Python 3.7+</text>
+  </g>
+  <g transform="translate(260, 150)">
+    <rect width="80" height="24" rx="12" fill="white" opacity="0.2"/>
+    <text x="40" y="16" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Zero Deps</text>
+  </g>
+  <g transform="translate(350, 150)">
+    <rect width="100" height="24" rx="12" fill="white" opacity="0.2"/>
+    <text x="50" y="16" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Codex + OpenCode</text>
+  </g>
+</svg>
