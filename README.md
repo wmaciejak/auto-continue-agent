@@ -19,7 +19,7 @@
 
 ## 🚀 Overview
 
-**Auto-Continue** is a background daemon that automatically continues your AI coding sessions when you hit rate limits. It monitors [Codex CLI](https://github.com/openai/codex) and [OpenCode](https://github.com/opencode-ai/opencode), detects rate limit errors, waits for the reset time, and seamlessly resumes your sessions.
+**Auto-Continue** is a background daemon that automatically continues your AI coding sessions when you hit rate limits. It monitors [Codex CLI](https://github.com/openai/codex), [OpenCode](https://github.com/opencode-ai/opencode), and [Claude Code](https://github.com/anthropics/claude-code), detects rate limit errors, waits for the reset time, and seamlessly resumes your sessions.
 
 **No more manual intervention. No more lost context. Just continuous productivity.**
 
@@ -32,14 +32,14 @@
 ### 🤖 Multi-Tool Support
 - **Codex CLI** (OpenAI) — monitors SQLite database
 - **OpenCode** — monitors log files
-- Unified daemon for both tools
+- **Claude Code** (Anthropic) — scans session JSONL files
 
 </td>
 <td width="50%">
 
 ### ⚡ Smart Detection
 - Polls every 30 seconds
-- Detects `usageLimitExceeded` errors
+- Detects usage/rate limit errors
 - Extracts reset times from error messages
 - 2-hour max wait cap (prevents stale errors)
 
@@ -51,7 +51,7 @@
 ### 🔄 Automatic Resume
 - Codex: `codex queue --resume`
 - OpenCode: `opencode --continue`
-- Preserves full session context
+- Claude: `claude --resume <session>`
 
 </td>
 <td width="50%">
@@ -81,7 +81,7 @@
 
 ### Prerequisites
 - Python 3.7+ (stdlib only, **zero dependencies**)
-- Codex CLI and/or OpenCode installed
+- Codex CLI and/or OpenCode and/or Claude Code installed
 - systemd (for service mode)
 
 ### Quick Start
@@ -169,6 +169,13 @@ The daemon tracks continued sessions in `~/.local/state/auto-continue-daemon.jso
       "turn_id": "01a1bb90-...",
       "continued_at": "2026-11-09T21:30:00",
       "wait_seconds": 3600
+    },
+    "claude:abc123...": {
+      "tool": "claude",
+      "session_id": "abc123...",
+      "turn_id": "1751911200",
+      "continued_at": "2026-11-10T10:15:00",
+      "wait_seconds": 3600
     }
   }
 }
@@ -180,6 +187,7 @@ The daemon tracks continued sessions in `~/.local/state/auto-continue-daemon.jso
 2026-11-09 21:30:37 [INFO] Starting auto-continue daemon (poll every 30s)
 2026-11-09 21:30:37 [INFO] Monitoring Codex: /home/dev/.codex/thread_history_1.sqlite
 2026-11-09 21:30:37 [INFO] Monitoring OpenCode: /home/dev/.local/share/opencode/log/opencode.log
+2026-11-09 21:30:37 [INFO] Monitoring Claude: /home/dev/.claude/projects
 2026-11-09 21:35:15 [INFO] Codex: rate limit detected in session 'Fix tests' (01a1bb89...)
 2026-11-09 21:35:15 [INFO] Reset time: 7:54 PM (19:54:00). Waiting 3600s (60m0s)
 2026-11-09 21:35:15 [INFO] Sleeping for 3600s...
@@ -215,6 +223,17 @@ The daemon tracks continued sessions in `~/.local/state/auto-continue-daemon.jso
   <br/>
   <code>usage limit exceeded</code>
 </td>
+<td align="center">
+  <img src="assets/claude-icon.svg" width="80" alt="Claude"/>
+  <br/>
+  <strong>Claude Code</strong>
+  <br/>
+  <small>Anthropic's coding agent</small>
+  <br/>
+  <code>~/.claude/projects/*/*.jsonl</code>
+  <br/>
+  <code>usage limit reached</code>
+</td>
 </tr>
 </table>
 </div>
@@ -227,6 +246,7 @@ The daemon tracks continued sessions in `~/.local/state/auto-continue-daemon.jso
 # Check data sources exist
 ls -lh ~/.codex/thread_history_1.sqlite
 ls -lh ~/.local/share/opencode/log/opencode.log
+ls -lh ~/.claude/projects/
 
 # Run with debug logging
 ./daemon.py --log-level DEBUG
@@ -252,6 +272,19 @@ which opencode
 sqlite3 ~/.local/share/opencode/opencode.db "SELECT id, title FROM session_v2 WHERE id='<session-id>';"
 ```
 
+### Claude resume failing
+
+```bash
+# Verify claude is in PATH
+which claude
+
+# Check session files exist
+ls ~/.claude/projects/*/
+
+# Test manual resume
+claude --resume <session-id>
+```
+
 ### Reset to clean state
 
 ```bash
@@ -270,6 +303,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Codex CLI](https://github.com/openai/codex) — OpenAI's coding agent
 - [OpenCode](https://github.com/opencode-ai/opencode) — AI coding assistant
+- [Claude Code](https://github.com/anthropics/claude-code) — Anthropic's coding agent
 - Python standard library — zero dependencies FTW!
 
 ## 📮 Contact

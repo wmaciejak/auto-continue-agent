@@ -2,16 +2,18 @@
 """
 Auto-Continue Daemon - Extended
 
-Background service that automatically continues Codex and OpenCode sessions
+Background service that automatically continues AI coding sessions
 when rate limits are hit.
 
 Supported tools:
 - Codex CLI (OpenAI)
 - OpenCode
+- Claude Code (Anthropic)
 
 Detection methods:
 - Codex: Polls thread_history_1.sqlite for usageLimitExceeded errors
 - OpenCode: Monitors log file for "usage limit exceeded" errors
+- Claude: Scans session JSONL files for rate limit errors
 
 Usage:
     python daemon.py                    # Run in foreground
@@ -45,6 +47,10 @@ CODEX_STATE_DB = CODEX_HOME / "state_5.sqlite"
 OPENCODE_HOME = Path.home() / ".local" / "share" / "opencode"
 OPENCODE_LOG_FILE = OPENCODE_HOME / "log" / "opencode.log"
 OPENCODE_DB = OPENCODE_HOME / "opencode.db"
+
+# Claude paths
+CLAUDE_HOME = Path.home() / ".claude"
+CLAUDE_PROJECTS_DIR = CLAUDE_HOME / "projects"
 
 # State file (shared)
 STATE_FILE = Path.home() / ".local" / "state" / "auto-continue-daemon.json"
@@ -409,6 +415,195 @@ def resume_opencode_session(session_id: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Claude detection
+# ---------------------------------------------------------------------------
+
+
+def get_claude_rate_limit_errors(max_age_seconds: int = 300) -> list[dict]:
+    """
+    Scan Claude session JSONL files for recent rate limit errors.
+    Returns list of {session_id, project, error_message, reset_time, timestamp}.
+    
+    Claude error formats:
+    - "Claude AI usage limit reached|1751911200" (Unix timestamp)
+    - "You've hit your session limit · resets 3:45pm"
+    - "You've hit your weekly limit · resets Mon 12:00am"
+    """
+    if not CLAUDE_PROJECTS_DIR.exists():
+        return []
+
+    now_sec = int(time.time())
+    cutoff_sec = now_sec - max_age_seconds
+    results = []
+
+    try:
+        # Scan all project directories
+        for project_dir in CLAUDE_PROJECTS_DIR.iterdir():
+            if not project_dir.is_dir():
+                continue
+
+            # Find all session JSONL files
+            for session_file in project_dir.glob("*.jsonl"):
+                # Extract session ID from filename
+                session_id = session_file.stem
+                
+                try:
+                    # Get file modification time
+                    mtime = int(session_file.stat().st_mtime)
+                    if mtime < cutoff_sec:
+                        continue  # Skip old files
+
+                    # Read last 100 lines (session can be large)
+                    with open(session_file, "r") as f:
+                        lines = f.readlines()[-100:]
+
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+
+                        # Parse JSONL
+                        try:
+                            entry = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+
+                        # Check for rate limit errors
+                        # Look in various fields where errors might appear
+                        error_text = ""
+                        if isinstance(entry, dict):
+                            # Check common error fields
+                            if "error" in entry:
+                                error_text = str(entry["error"])
+                            elif "message" in entry and isinstance(entry["message"], str):
+                                error_text = entry["message"]
+                            elif "content" in entry and isinstance(entry["content"], str):
+                                error_text = entry["content"]
+                        
+                        # Check for rate limit patterns
+                        if not any(pattern in error_text.lower() for pattern in [
+                            "usage limit reached",
+                            "usage limit",
+                            "rate limit",
+                            "hit your session limit",
+                            "hit your weekly limit",
+                        ]):
+                            continue
+
+                        # Extract reset time from error message
+                        reset_time = None
+                        reset_time_str = None
+
+                        # Pattern 1: Unix timestamp "limit reached|1751911200"
+                        ts_match = re.search(r"limit reached\|(\d+)", error_text)
+                        if ts_match:
+                            reset_timestamp = int(ts_match.group(1))
+                            reset_time = reset_timestamp
+                            reset_time_str = datetime.fromtimestamp(reset_timestamp).strftime("%H:%M")
+
+                        # Pattern 2: "resets 3:45pm" or "resets Mon 12:00am"
+                        if not reset_time:
+                            time_match = re.search(
+                                r"resets\s+(\w+)?\s*(\d{1,2}:\d{2}\s*(?:am|pm)?)",
+                                error_text,
+                                re.IGNORECASE,
+                            )
+                            if time_match:
+                                day_part = time_match.group(1) or ""
+                                time_part = time_match.group(2)
+                                reset_time_str = f"{day_part} {time_part}".strip()
+                                # Parse time for calculation
+                                try:
+                                    # Try parsing just the time
+                                    for fmt in ["%I:%M%p", "%I:%M %p", "%H:%M"]:
+                                        try:
+                                            parsed = datetime.strptime(time_part.strip(), fmt)
+                                            # Set to today
+                                            now = datetime.now()
+                                            candidate = now.replace(
+                                                hour=parsed.hour,
+                                                minute=parsed.minute,
+                                                second=0,
+                                                microsecond=0,
+                                            )
+                                            # If in past, assume tomorrow
+                                            if candidate < now:
+                                                candidate += timedelta(days=1)
+                                            reset_time = int(candidate.timestamp())
+                                            break
+                                        except ValueError:
+                                            continue
+                                except Exception:
+                                    pass
+
+                        results.append({
+                            "session_id": session_id,
+                            "project": project_dir.name,
+                            "error_message": error_text[:500],  # Truncate long messages
+                            "reset_time": reset_time,
+                            "reset_time_str": reset_time_str,
+                            "timestamp": mtime,
+                        })
+                        break  # Only capture first error per session
+
+                except Exception as e:
+                    logger.debug(f"Error reading Claude session {session_file}: {e}")
+                    continue
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Claude session scan error: {e}")
+        return []
+
+
+def get_claude_session_name(session_id: str) -> str:
+    """Get a display name for a Claude session (uses project name as fallback)."""
+    if not CLAUDE_PROJECTS_DIR.exists():
+        return session_id[:12]
+
+    # Scan projects to find which one contains this session
+    for project_dir in CLAUDE_PROJECTS_DIR.iterdir():
+        if not project_dir.is_dir():
+            continue
+        session_file = project_dir / f"{session_id}.jsonl"
+        if session_file.exists():
+            return f"{project_dir.name}/{session_id[:8]}"
+
+    return session_id[:12]
+
+
+def resume_claude_session(session_id: str) -> bool:
+    """Resume a Claude session via CLI."""
+    cmd = ["claude", "--resume", session_id]
+    logger.info(f"Claude: resuming session {session_id[:12]}...")
+
+    try:
+        # Claude CLI is interactive, so we use a short timeout
+        # If it starts successfully, we consider it a success
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        # Claude might exit immediately or start interactive session
+        if result.returncode in [0, 1, 124]:  # 124 = timeout
+            logger.info(f"Claude: resume command executed (exit {result.returncode})")
+            return True
+        else:
+            logger.warning(f"Claude: resume exited with code {result.returncode}")
+            return False
+    except subprocess.TimeoutExpired:
+        # Timeout is expected - Claude starts interactive session
+        logger.info("Claude: resume command started (interactive session)")
+        return True
+    except FileNotFoundError:
+        logger.error("'claude' not found in PATH")
+        return False
+
+
+# ---------------------------------------------------------------------------
 # Unified error handling
 # ---------------------------------------------------------------------------
 
@@ -428,6 +623,11 @@ def handle_rate_limit_error(tool: str, error: dict) -> bool:
         turn_id = error.get("timestamp", "unknown")
         session_name = get_opencode_session_name(session_id)
         resume_fn = resume_opencode_session
+    elif tool == "claude":
+        session_id = error["session_id"]
+        turn_id = str(error.get("timestamp", "unknown"))
+        session_name = get_claude_session_name(session_id)
+        resume_fn = resume_claude_session
     else:
         logger.error(f"Unknown tool: {tool}")
         return False
@@ -489,6 +689,7 @@ def main_loop(poll_interval: int) -> None:
     logger.info(f"Starting auto-continue daemon (poll every {poll_interval}s)")
     logger.info(f"Monitoring Codex: {CODEX_THREAD_HISTORY_DB}")
     logger.info(f"Monitoring OpenCode: {OPENCODE_LOG_FILE}")
+    logger.info(f"Monitoring Claude: {CLAUDE_PROJECTS_DIR}")
     logger.info(f"State file: {STATE_FILE}")
 
     consecutive_waits = 0
@@ -516,6 +717,22 @@ def main_loop(poll_interval: int) -> None:
             if opencode_errors:
                 latest = opencode_errors[0]
                 success = handle_rate_limit_error("opencode", latest)
+                if success:
+                    consecutive_waits += 1
+                    if consecutive_waits >= MAX_CONSECUTIVE_WAITS:
+                        logger.warning(
+                            f"Hit {MAX_CONSECUTIVE_WAITS} consecutive waits. "
+                            f"Pausing for 10 minutes to avoid infinite loop."
+                        )
+                        time.sleep(600)
+                        consecutive_waits = 0
+                    continue
+
+            # Check Claude
+            claude_errors = get_claude_rate_limit_errors()
+            if claude_errors:
+                latest = claude_errors[0]
+                success = handle_rate_limit_error("claude", latest)
                 if success:
                     consecutive_waits += 1
                     if consecutive_waits >= MAX_CONSECUTIVE_WAITS:
@@ -557,7 +774,7 @@ def handle_signal(signum: int, frame) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Auto-continue daemon for Codex and OpenCode",
+        description="Auto-continue daemon for Codex, OpenCode, and Claude",
     )
     parser.add_argument(
         "--poll-interval",
@@ -580,10 +797,11 @@ def main() -> int:
     signal.signal(signal.SIGINT, handle_signal)
 
     # Check prerequisites
-    if not CODEX_THREAD_HISTORY_DB.exists() and not OPENCODE_LOG_FILE.exists():
-        logger.error("Neither Codex nor OpenCode data sources found")
+    if not CODEX_THREAD_HISTORY_DB.exists() and not OPENCODE_LOG_FILE.exists() and not CLAUDE_PROJECTS_DIR.exists():
+        logger.error("None of the supported tools found (Codex, OpenCode, or Claude)")
         logger.error(f"  Codex: {CODEX_THREAD_HISTORY_DB}")
         logger.error(f"  OpenCode: {OPENCODE_LOG_FILE}")
+        logger.error(f"  Claude: {CLAUDE_PROJECTS_DIR}")
         return 1
 
     try:
