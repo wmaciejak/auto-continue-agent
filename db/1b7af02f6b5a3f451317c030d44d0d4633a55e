@@ -1,0 +1,14 @@
+assets/logo.svg
+  h_1be3d917dfb493 40-41,43-45,47-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "db1b7af02f6b5a3f451317c030d44d0d4633a55e",
+  "prompts": {},
+  "humans": {
+    "h_1be3d917dfb493": {
+      "author": "Wojciech Maciejak <4128525+wmaciejak@users.noreply.github.com>"
+    }
+  }
+}
