@@ -133,15 +133,34 @@ def already_continued(tool: str, session_id: str, turn_id: str) -> bool:
 
 def parse_reset_time(time_str: str) -> Optional[datetime]:
     """
-    Parse '7:54 PM' style time into a datetime.
-    Assumes today's date; if the time has already passed, assumes tomorrow.
+    Parse reset time strings into a datetime.
+    Supports multiple formats:
+    - '7:54 PM' (time only)
+    - 'Nov 13th, 2026 11:28 PM' (full date)
+    - '19:30' (24h format)
     """
     try:
         now = datetime.now()
-        # Parse time like "7:54 PM" or "19:30"
+        cleaned = time_str.strip()
+        
+        # Try full date formats first: "Nov 13th, 2026 11:28 PM"
+        # Remove ordinal suffixes (st, nd, rd, th)
+        cleaned_ordinal = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', cleaned)
+        
+        for fmt in [
+            "%B %d, %Y %I:%M %p",  # Nov 13, 2026 11:28 PM
+            "%b %d, %Y %I:%M %p",  # Nov 13, 2026 11:28 PM (abbreviated)
+        ]:
+            try:
+                parsed = datetime.strptime(cleaned_ordinal, fmt)
+                return parsed
+            except ValueError:
+                continue
+        
+        # Try time-only formats
         for fmt in ("%I:%M %p", "%H:%M"):
             try:
-                parsed = datetime.strptime(time_str.strip(), fmt)
+                parsed = datetime.strptime(cleaned, fmt)
                 # Set to today
                 candidate = now.replace(
                     hour=parsed.hour,
@@ -155,6 +174,7 @@ def parse_reset_time(time_str: str) -> Optional[datetime]:
                 return candidate
             except ValueError:
                 continue
+        
         return None
     except Exception as e:
         logger.warning(f"Failed to parse reset time '{time_str}': {e}")
@@ -172,10 +192,11 @@ def seconds_until(target: datetime) -> int:
 # ---------------------------------------------------------------------------
 
 
-def get_codex_rate_limit_errors(max_age_seconds: int = 300) -> list[dict]:
+def get_codex_rate_limit_errors(max_age_seconds: int = 3600) -> list[dict]:
     """
     Query Codex thread_turns for recent usageLimitExceeded errors.
-    Only returns errors from the last `max_age_seconds` seconds (default: 5 min).
+    Only returns errors from the last `max_age_seconds` seconds (default: 1 hour).
+    Increased from 5 min to handle cases where daemon wasn't running.
     """
     if not CODEX_THREAD_HISTORY_DB.exists():
         return []
@@ -208,9 +229,11 @@ def get_codex_rate_limit_errors(max_age_seconds: int = 300) -> list[dict]:
                 err = json.loads(row["error_json"])
                 message = err.get("message", "")
                 
-                # Extract "try again at <time>" pattern
+                # Extract "try again at <time>" pattern - supports multiple formats
+                # - "try again at 7:54 PM"
+                # - "try again at Nov 13th, 2026 11:28 PM"
                 reset_match = re.search(
-                    r"try again at (\d{1,2}:\d{2}\s*(?:AM|PM)?)",
+                    r"try again at ((?:\w+ \d+(?:st|nd|rd|th)?,? \d+)?\s*\d{1,2}:\d{2}\s*(?:AM|PM)?)",
                     message,
                     re.IGNORECASE,
                 )
@@ -286,10 +309,11 @@ def resume_codex_session(thread_id: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def get_opencode_rate_limit_errors(max_age_seconds: int = 300) -> list[dict]:
+def get_opencode_rate_limit_errors(max_age_seconds: int = 3600) -> list[dict]:
     """
     Parse OpenCode log file for recent rate limit errors.
     Returns list of {session_id, error_message, reset_time_str, timestamp}.
+    Increased from 5 min to handle cases where daemon wasn't running.
     """
     if not OPENCODE_LOG_FILE.exists():
         return []
@@ -419,7 +443,7 @@ def resume_opencode_session(session_id: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def get_claude_rate_limit_errors(max_age_seconds: int = 300) -> list[dict]:
+def get_claude_rate_limit_errors(max_age_seconds: int = 3600) -> list[dict]:
     """
     Scan Claude session JSONL files for recent rate limit errors.
     Returns list of {session_id, project, error_message, reset_time, timestamp}.
@@ -428,6 +452,8 @@ def get_claude_rate_limit_errors(max_age_seconds: int = 300) -> list[dict]:
     - "Claude AI usage limit reached|1751911200" (Unix timestamp)
     - "You've hit your session limit · resets 3:45pm"
     - "You've hit your weekly limit · resets Mon 12:00am"
+    
+    Increased from 5 min to handle cases where daemon wasn't running.
     """
     if not CLAUDE_PROJECTS_DIR.exists():
         return []
